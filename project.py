@@ -1,16 +1,16 @@
 class Character:
+
     clans = ["Nosferatu", "Gangrel", "Tremere", "Torreador", "Vantrue", "Brujah", "Malkavian"]
-    attributes = {
-        "Strength": 0, "Dexterity": 0, "Stamina": 0,
-        "Charisma": 0, "Manipulation": 0, "Composure": 0,
-        "Intelligence": 0, "Wits": 0, "Resolve": 0
-    }
 
     def __init__(self, name, clan, attributes=None, skills=None):
-        self.name = name                #character
+        self.name = name                #character's name
         self.clan = clan                #character's clan from the main handbook
-        self.attributes = attributes    #dict
-        self.skills = skills            #dict
+        self.attributes = attributes or {
+                                         "Strength": 0, "Dexterity": 0, "Stamina": 0,
+                                        "Charisma": 0, "Manipulation": 0, "Composure": 0,
+                                        "Intelligence": 0, "Wits": 0, "Resolve": 0
+                                        }
+        self.skills = skills or {}           #dict
 
     def __str__(self):
         return f"{self.name} - Clan: {self.clan}\n{self.attributes}"
@@ -20,6 +20,8 @@ class Character:
         """Method prompts the user for character details and initiates a character instance"""
 
         name = input("What's the name of your character?: ")
+
+        #Clan selection
         for i, clan in enumerate(cls.clans, 1):
             print(f"{i}. {clan}")
 
@@ -34,22 +36,43 @@ class Character:
 
         selected_clan = cls.clans[(int(clan_num)) - 1]
 
+        #Defining possible points allocation
+        expected_distribution = {4: 1, 3: 3, 2: 4, 1: 1}  # Number of attributes per value
+        user_distribution = {}  # Store counts of assigned values
+
+        #Asking user to attribute points
         print(f"Please allocate numbers for attributes as instructed below:\n"
               f"- Take your best Attribute at 4\n- Take your worst Attribute at 1\n- Take three Attributes at 3\n"
               f"- Take the rest of your Attributes at 2")
 
+        attribute_names = ["Strength", "Dexterity", "Stamina",
+                           "Charisma", "Manipulation", "Composure",
+                           "Intelligence", "Wits", "Resolve"]
+
         character_attributes = {}
+        for attribute in attribute_names:
+            while True:
+                try:
+                    value = int(input(f"{attribute}: "))
+                    user_distribution[value] = user_distribution.get(value, 0) + 1  # Count occurrences
+                    character_attributes[attribute] = value     #add each attribute+points to a dict
+                    break
+                except ValueError:
+                    print("Invalid input. Please enter a number.")
 
-        try:
-            for attribute in cls.attributes.keys():
-                value = input(f"{attribute}: ")
-                character_attributes.update({attribute: int(value)})
-        except ValueError:
-            pass
+        #Skills
 
-        #skills = input("What are your character's skills?: ")
+        #Validate if the points distribution matches the one from VtM5e rules
+        if user_distribution == expected_distribution:
+            return cls(name, selected_clan, character_attributes)
+        else:
+            print("Invalid attribute allocation. Please follow the rules and try again.")
+            return None
 
-        return cls(name, selected_clan, character_attributes)
+
+
+
+
 
     def display(self):
         """Displays character information in a formated way"""
