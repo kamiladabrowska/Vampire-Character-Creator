@@ -1,4 +1,6 @@
 from prettytable import PrettyTable
+import json
+import os
 
 class Character:
     """Represents a Vampire: The Masquerade 5th Edition character."""
@@ -28,7 +30,7 @@ class Character:
                         "Etiquette": 0, "Insight": 0, "Intimidation": 0, "Leadership": 0,
                         "Performance": 0,  "Persuasion": 0, "Streetwise": 0, "Subterfuge": 0,
                         "Academics": 0, "Awareness": 0, "Finance": 0, "Investigation": 0, "Medicine": 0,
-                        "Occult": 0, "Politics": 0, "Science": 0
+                        "Occult": 0, "Politics": 0, "Science": 0, "Technology": 0
         }
 
     def __str__(self):
@@ -103,7 +105,8 @@ class Character:
             "Athletics", "Brawl", "Craft", "Drive", "Firearms", "Larceny", "Melee", "Stealth", "Survival",  # Physical
             "Animal Ken", "Etiquette", "Insight", "Intimidation", "Leadership", "Performance", "Persuasion",
             "Streetwise", "Subterfuge",  # Social
-            "Academics", "Awareness", "Finance", "Investigation", "Medicine", "Occult", "Politics", "Science"  # Mental
+            "Academics", "Awareness", "Finance", "Investigation", "Medicine", "Occult", "Politics",
+            "Science", "Technology"  # Mental
         ]
 
         print("\nNow you need to pick the skill distribution type (number) from the below list:\n"
@@ -115,13 +118,13 @@ class Character:
         while True:
             skill_distribution_choice = input("What is your choice?: ")
             if skill_distribution_choice == "1":
-                expected_skill_distribution = {3: 1, 2: 8, 1: 10, 0: 7}
+                expected_skill_distribution = {3: 1, 2: 8, 1: 10, 0: 8}
                 break
             elif skill_distribution_choice == "2":
-                expected_skill_distribution = {3: 3, 2: 5, 1: 7, 0: 11}
+                expected_skill_distribution = {3: 3, 2: 5, 1: 7, 0: 12}
                 break
             elif skill_distribution_choice == "3":
-                expected_skill_distribution = {4: 1, 3: 3, 2: 3, 1: 3, 0: 16}
+                expected_skill_distribution = {4: 1, 3: 3, 2: 3, 1: 3, 0: 17}
                 break
             else:
                 print("Invalid input. Please enter a number between 1-3.")
@@ -162,31 +165,107 @@ class Character:
 
         return cls(name, selected_clan, temp_attributes, character_skills)
 
-
     def display(self):
         """Displays character attributes and skills in a formatted table."""
 
-        table = PrettyTable()
-        table.title = f"Character: {self.name} (Clan: {self.clan})"
-        table.field_names = ["Attribute", "Value"]
+        def format_points(value, max_points=5):
+            filled = "●" * value
+            empty = "○" * (max_points - value)
+            return filled + empty + "   "
 
-        for key, value in self.attributes.items():
-            table.add_row([key, value])
+        column_type = ["Physical", "Social", "Mental"]
 
-        print(table)
+        # title
+        print(f"Character: {self.name} (Clan: {self.clan})")
+        #attributes
+        table_attributes = PrettyTable()
+        table_attributes.title = "Attributes"
+        table_attributes.field_names = ["Physical", "Social", "Mental"]
+        attributes_order = [
+            ("Strength", "Charisma", "Intelligence"),
+            ("Dexterity", "Manipulation", "Wits"),
+            ("Stamina", "Composure", "Resolve")
+        ]
+        for col in column_type:
+            table_attributes.min_width[col] = 25
+            table_attributes.align[col] = "r"
 
+        for physical, social, mental in attributes_order:
+            table_attributes.add_row([
+                physical + "     " + format_points(self.attributes[physical]),
+                social + "     " + format_points(self.attributes[social]),
+                mental+ "     " + format_points(self.attributes[mental])
+            ])
+
+        print(table_attributes)
+
+        #skills
         table_skills = PrettyTable()
         table_skills.title = "Skills"
-        table_skills.field_names = ["Skill", "Value"]
+        table_skills.field_names = ["Physical", "Social", "Mental"]
+        skills_order = [
+            ("Athletics", "Animal Ken", "Academics"),
+            ("Brawl", "Etiquette", "Awareness"),
+            ("Craft", "Insight", "Finance"),
+            ("Drive", "Intimidation", "Investigation"),
+            ("Firearms", "Leadership", "Medicine"),
+            ("Larceny", "Performance", "Occult"),
+            ("Melee", "Persuasion", "Politics"),
+            ("Stealth", "Streetwise", "Science"),
+            ("Survival", "Subterfuge", "Technology")
+        ]
+        for col in column_type:
+            table_skills.min_width[col] = 25
+            table_skills.align[col] = "r"
 
-        for key, value in self.skills.items():
-            table_skills.add_row([key, value])
+        for physical, social, mental in skills_order:
+            table_skills.add_row([
+                physical + "     " + format_points(self.skills[physical]),
+                social + "     " + format_points(self.skills[social]),
+                mental + "     " + format_points(self.skills[mental])
+            ])
 
         print(table_skills)
 
+        # secondary attributes
+        table_secondary_attributes = PrettyTable()
+        table_secondary_attributes.field_names = ["Health", "Willpower"]
+        table_secondary_attributes.min_width["Health"] = 20
+        table_secondary_attributes.min_width["Willpower"] = 20
+
+        table_secondary_attributes.add_row([
+            format_points(self.attributes["Health"], max_points=10),
+            format_points(self.attributes["Willpower"], max_points=10)
+        ])
+        print(table_secondary_attributes)
+
     def save(self, filename="characters.json"):
-        """Saves the character in a JSON file"""
-        ...
+        """Saves character data to a JSON file"""
+
+        # create a dict with character data
+        character_data = {
+            "name" : self.name,
+            "clan" : self.clan,
+            "attributes" : self.attributes,
+            "skills" : self.skills
+        }
+
+        # check if file exists
+        if os.path.exists(filename):
+            try:
+                with open(filename, "r", encoding="utf8") as file:
+                    characters = json.load(file)                    # load existing characters from file
+            except json.JSONDecodeError:
+                characters = []                                     # if file is empty
+        else:
+            characters = []                                         # create a new list otherwise
+
+        characters.append(character_data)                           # create an empty characters list
+
+        with open(filename, "w", encoding="utf-8") as file:
+            json.dump(characters, file, indent=4)                   # load updated characters data to json file
+
+        print(f"Character: '{self.name}' was saved successfully.")               # confirmation mes
 
     @classmethod
     def load_all(cls):
@@ -198,11 +277,62 @@ class Character:
 
 
 def main():
-    character = Character.create()
-    print(character)
+    # Load character data from JSON file
+    filename = "characters.json"
+    with open(filename, "r", encoding="utf-8") as file:
+        characters = json.load(file)  # Load JSON into a list
 
+    # Create a Character instance from the first entry in the JSON
+    char_data = characters[0]  # Assuming we take the first character
+
+    # Create a Character instance using the loaded data
+    character = Character(
+        name=char_data["name"],
+        clan=char_data["clan"],
+        attributes=char_data["attributes"],
+        skills=char_data["skills"]
+    )
+
+    # Display character details
     character.display()
 
+    print(load_characters())
+
+
+def load_characters(filename="characters.json"):
+    """Returns a list of characters from JSON file"""
+
+    # open json file - handle cases if it doesn't exist or is empty
+    if os.path.exists(filename):
+        try:
+            with open(filename, "r", encoding="utf8") as file:
+                characters = json.load(file)
+        except json.JSONDecodeError:
+            print("There are no saved characters.")
+    else:
+        print("The file doesn't exist")
+
+    character_list = []
+    for character in characters:
+        character_list.append(character["name"])
+    #return the list of characters
+    return character_list
+
+def find_character(name, filename="characters.json"):
+    """Returns character data in a dict if it is saved in JSON file, else returns None"""
+    #call load_characters
+
+    #loop through the list
+
+    #if name matches return the character dict
+
+    #if not found return None
+
+def delete_character(name, filename="characters.json"):
+    ...
+
+def export_character(name, filename="characters.json"):
+    ...
 
 if __name__ == "__main__":
     main()
